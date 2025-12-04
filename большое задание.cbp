@@ -32,7 +32,11 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
+		<Unit filename="fwd_container.h" />
 		<Unit filename="main.cpp" />
+		<Unit filename="queue.h" />
+		<Unit filename="stack.h" />
+		<Unit filename="test.cpp" />
 		<Extensions>
 			<lib_finder disable_auto="1" />
 		</Extensions>

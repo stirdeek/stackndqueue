@@ -1,6 +1,3 @@
-#ifndef FWD_CONTAINER_H_INCLUDED
-#define FWD_CONTAINER_H_INCLUDED
-
 #ifndef FWD_CONTAINER_H
 #define FWD_CONTAINER_H
 
@@ -13,7 +10,7 @@ class fwd_container {
 public:
     virtual ~fwd_container() = default;
 
-    // Абстрактные методы
+    // Абстрактные методы контейнера
     virtual void push(const T& value) = 0;
     virtual void push(T&& value) = 0;
     virtual T pop() = 0;
@@ -21,6 +18,15 @@ public:
     virtual const T& get_front() const = 0;
     virtual bool is_empty() const = 0;
     virtual size_t size() const = 0;
+
+    // Предварительные объявления
+protected:
+    class iterator_base;
+    class const_iterator_base;
+
+public:
+    class const_iterator;  // Предварительное объявление
+    class iterator;        // Предварительное объявление
 
     // Базовые классы итераторов
 protected:
@@ -57,7 +63,82 @@ protected:
     };
 
 public:
-    // Классы итераторов
+    // Класс const_iterator должен быть объявлен перед iterator
+    class const_iterator {
+    public:
+        using iterator_category = std::forward_iterator_tag;
+        using value_type = T;
+        using difference_type = std::ptrdiff_t;
+        using pointer = const T*;
+        using reference = const T&;
+
+        const_iterator() : base(nullptr) {}
+        ~const_iterator() { delete base; }
+
+        // Конструктор копирования
+        const_iterator(const const_iterator& other) : base(other.base ? other.base->clone() : nullptr) {}
+
+        // Конструктор перемещения
+        const_iterator(const_iterator&& other) noexcept : base(other.base) {
+            other.base = nullptr;
+        }
+
+        // Присваивание копированием
+        const_iterator& operator=(const const_iterator& other) {
+            if (this != &other) {
+                delete base;
+                base = other.base ? other.base->clone() : nullptr;
+            }
+            return *this;
+        }
+
+        // Присваивание перемещением
+        const_iterator& operator=(const_iterator&& other) noexcept {
+            if (this != &other) {
+                delete base;
+                base = other.base;
+                other.base = nullptr;
+            }
+            return *this;
+        }
+
+        // Операторы доступа
+        const T& operator*() const { return base->operator*(); }
+        const T* operator->() const { return base->operator->(); }
+
+        // Префиксный инкремент
+        const_iterator& operator++() {
+            base->operator++();
+            return *this;
+        }
+
+        // Постфиксный инкремент
+        const_iterator operator++(int) {
+            const_iterator temp = *this;
+            base->operator++();
+            return temp;
+        }
+
+        // Сравнение
+        bool operator==(const const_iterator& other) const {
+            if (!base && !other.base) return true;
+            if (!base || !other.base) return false;
+            return base->operator==(*other.base);
+        }
+
+        bool operator!=(const const_iterator& other) const {
+            return !(*this == other);
+        }
+
+    private:
+        const_iterator_base* base;
+        friend class iterator;
+        friend class fwd_container<T>;  // Делаем fwd_container другом
+
+        const_iterator(const_iterator_base* base_ptr) : base(base_ptr) {}
+    };
+
+    // Теперь класс iterator
     class iterator {
     public:
         using iterator_category = std::forward_iterator_tag;
@@ -78,7 +159,7 @@ public:
         }
 
         // Конструктор из const_iterator
-        iterator(const const_iterator& other);
+        iterator(const const_iterator& other) : base(other.base ? other.base->clone() : nullptr) {}
 
         // Присваивание копированием
         iterator& operator=(const iterator& other) {
@@ -127,83 +208,6 @@ public:
             return !(*this == other);
         }
 
-        bool operator==(const const_iterator& other) const;
-        bool operator!=(const const_iterator& other) const;
-
-    private:
-        iterator_base* base;
-        friend class const_iterator;
-        friend class fwd_container;
-
-        iterator(iterator_base* base_ptr) : base(base_ptr) {}
-    };
-
-    class const_iterator {
-    public:
-        using iterator_category = std::forward_iterator_tag;
-        using value_type = T;
-        using difference_type = std::ptrdiff_t;
-        using pointer = const T*;
-        using reference = const T&;
-
-        const_iterator() : base(nullptr) {}
-        ~const_iterator() { delete base; }
-
-        // Конструктор копирования
-        const_iterator(const const_iterator& other) : base(other.base ? other.base->clone() : nullptr) {}
-
-        // Конструктор перемещения
-        const_iterator(const_iterator&& other) noexcept : base(other.base) {
-            other.base = nullptr;
-        }
-
-        // Конструктор из iterator
-        const_iterator(const iterator& other) : base(other.base ? other.base->clone() : nullptr) {}
-
-        // Присваивание копированием
-        const_iterator& operator=(const const_iterator& other) {
-            if (this != &other) {
-                delete base;
-                base = other.base ? other.base->clone() : nullptr;
-            }
-            return *this;
-        }
-
-        // Присваивание перемещением
-        const_iterator& operator=(const_iterator&& other) noexcept {
-            if (this != &other) {
-                delete base;
-                base = other.base;
-                other.base = nullptr;
-            }
-            return *this;
-        }
-
-        // Присваивание из iterator
-        const_iterator& operator=(const iterator& other) {
-            delete base;
-            base = other.base ? other.base->clone() : nullptr;
-            return *this;
-        }
-
-        // Операторы доступа
-        const T& operator*() const { return base->operator*(); }
-        const T* operator->() const { return base->operator->(); }
-
-        // Префиксный инкремент
-        const_iterator& operator++() {
-            base->operator++();
-            return *this;
-        }
-
-        // Постфиксный инкремент
-        const_iterator operator++(int) {
-            const_iterator temp = *this;
-            base->operator++();
-            return temp;
-        }
-
-        // Сравнение
         bool operator==(const const_iterator& other) const {
             if (!base && !other.base) return true;
             if (!base || !other.base) return false;
@@ -214,36 +218,13 @@ public:
             return !(*this == other);
         }
 
-        bool operator==(const iterator& other) const {
-            if (!base && !other.base) return true;
-            if (!base || !other.base) return false;
-            return base->operator==(*other.base);
-        }
-
-        bool operator!=(const iterator& other) const {
-            return !(*this == other);
-        }
-
     private:
-        const_iterator_base* base;
-        friend class iterator;
-        friend class fwd_container;
+        iterator_base* base;
+        friend class const_iterator;
+        friend class fwd_container<T>;  // Делаем fwd_container другом
 
-        const_iterator(const_iterator_base* base_ptr) : base(base_ptr) {}
+        iterator(iterator_base* base_ptr) : base(base_ptr) {}
     };
-
-    // Реализация методов iterator, которые требуют полного определения const_iterator
-    inline iterator::iterator(const const_iterator& other) : base(other.base ? other.base->clone() : nullptr) {}
-
-    inline bool iterator::operator==(const const_iterator& other) const {
-        if (!base && !other.base) return true;
-        if (!base || !other.base) return false;
-        return base->operator==(*other.base);
-    }
-
-    inline bool iterator::operator!=(const const_iterator& other) const {
-        return !(*this == other);
-    }
 
     // Абстрактные методы для итераторов
     virtual iterator begin() = 0;
@@ -272,5 +253,3 @@ public:
 };
 
 #endif // FWD_CONTAINER_H
-
-#endif // FWD_CONTAINER_H_INCLUDED
