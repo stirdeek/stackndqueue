@@ -63,7 +63,7 @@ protected:
     };
 
 public:
-    // Класс const_iterator должен быть объявлен перед iterator
+    // Класс const_iterator
     class const_iterator {
     public:
         using iterator_category = std::forward_iterator_tag;
@@ -75,6 +75,9 @@ public:
         const_iterator() : base(nullptr) {}
         ~const_iterator() { delete base; }
 
+        // Конструктор из указателя на const_iterator_base
+        const_iterator(const_iterator_base* base_ptr) : base(base_ptr) {}
+
         // Конструктор копирования
         const_iterator(const const_iterator& other) : base(other.base ? other.base->clone() : nullptr) {}
 
@@ -82,6 +85,9 @@ public:
         const_iterator(const_iterator&& other) noexcept : base(other.base) {
             other.base = nullptr;
         }
+
+        // Конструктор из iterator
+        const_iterator(const iterator& other);
 
         // Присваивание копированием
         const_iterator& operator=(const const_iterator& other) {
@@ -130,15 +136,15 @@ public:
             return !(*this == other);
         }
 
+        bool operator==(const iterator& other) const;
+        bool operator!=(const iterator& other) const;
+
     private:
         const_iterator_base* base;
         friend class iterator;
-        friend class fwd_container<T>;  // Делаем fwd_container другом
-
-        const_iterator(const_iterator_base* base_ptr) : base(base_ptr) {}
     };
 
-    // Теперь класс iterator
+    // Класс iterator
     class iterator {
     public:
         using iterator_category = std::forward_iterator_tag;
@@ -149,6 +155,9 @@ public:
 
         iterator() : base(nullptr) {}
         ~iterator() { delete base; }
+
+        // Конструктор из указателя на iterator_base
+        iterator(iterator_base* base_ptr) : base(base_ptr) {}
 
         // Конструктор копирования
         iterator(const iterator& other) : base(other.base ? other.base->clone() : nullptr) {}
@@ -208,22 +217,12 @@ public:
             return !(*this == other);
         }
 
-        bool operator==(const const_iterator& other) const {
-            if (!base && !other.base) return true;
-            if (!base || !other.base) return false;
-            return base->operator==(*other.base);
-        }
-
-        bool operator!=(const const_iterator& other) const {
-            return !(*this == other);
-        }
+        bool operator==(const const_iterator& other) const;
+        bool operator!=(const const_iterator& other) const;
 
     private:
         iterator_base* base;
         friend class const_iterator;
-        friend class fwd_container<T>;  // Делаем fwd_container другом
-
-        iterator(iterator_base* base_ptr) : base(base_ptr) {}
     };
 
     // Абстрактные методы для итераторов
@@ -251,5 +250,33 @@ public:
         return os;
     }
 };
+
+// Внешние определения методов вложенных классов
+template<typename T>
+inline fwd_container<T>::const_iterator::const_iterator(const iterator& other) : base(other.base ? other.base->clone() : nullptr) {}
+
+template<typename T>
+inline bool fwd_container<T>::const_iterator::operator==(const iterator& other) const {
+    if (!base && !other.base) return true;
+    if (!base || !other.base) return false;
+    return base->operator==(*other.base);
+}
+
+template<typename T>
+inline bool fwd_container<T>::const_iterator::operator!=(const iterator& other) const {
+    return !(*this == other);
+}
+
+template<typename T>
+inline bool fwd_container<T>::iterator::operator==(const const_iterator& other) const {
+    if (!base && !other.base) return true;
+    if (!base || !other.base) return false;
+    return base->operator==(*other.base);
+}
+
+template<typename T>
+inline bool fwd_container<T>::iterator::operator!=(const const_iterator& other) const {
+    return !(*this == other);
+}
 
 #endif // FWD_CONTAINER_H

@@ -1,161 +1,73 @@
-#ifndef QUEUE_H_INCLUDED
-#define QUEUE_H_INCLUDED
+#ifndef QUEUE_H
+#define QUEUE_H
 
 #include "fwd_container.h"
-#include <deque>
-#include <stdexcept>
+#include "node.h"
+#include <cstddef>
 
 template<typename T>
-class queue : public fwd_container<T> {
+class Queue : public fwd_container<T> {
 private:
-    std::deque<T> data;
-
-    // Класс итератора для queue
-    class queue_iterator : public fwd_container<T>::iterator_base {
-    private:
-        typename std::deque<T>::iterator current;
-        typename std::deque<T>::iterator end;
-
-    public:
-        queue_iterator(typename std::deque<T>::iterator start,
-                      typename std::deque<T>::iterator end_pos)
-            : current(start), end(end_pos) {}
-
-        T& operator*() override {
-            return *current;
-        }
-
-        T* operator->() override {
-            return &(*current);
-        }
-
-        typename fwd_container<T>::iterator_base& operator++() override {
-            ++current;
-            return *this;
-        }
-
-        bool operator==(const typename fwd_container<T>::iterator_base& other) const override {
-            const queue_iterator* derived = dynamic_cast<const queue_iterator*>(&other);
-            if (!derived) return false;
-            return current == derived->current;
-        }
-
-        bool operator!=(const typename fwd_container<T>::iterator_base& other) const override {
-            return !(*this == other);
-        }
-
-    protected:
-        typename fwd_container<T>::iterator_base* clone() const override {
-            return new queue_iterator(*this);
-        }
-    };
-
-    class queue_const_iterator : public fwd_container<T>::const_iterator_base {
-    private:
-        typename std::deque<T>::const_iterator current;
-        typename std::deque<T>::const_iterator end;
-
-    public:
-        queue_const_iterator(typename std::deque<T>::const_iterator start,
-                           typename std::deque<T>::const_iterator end_pos)
-            : current(start), end(end_pos) {}
-
-        const T& operator*() const override {
-            return *current;
-        }
-
-        const T* operator->() const override {
-            return &(*current);
-        }
-
-        typename fwd_container<T>::const_iterator_base& operator++() override {
-            ++current;
-            return *this;
-        }
-
-        bool operator==(const typename fwd_container<T>::const_iterator_base& other) const override {
-            const queue_const_iterator* derived = dynamic_cast<const queue_const_iterator*>(&other);
-            if (!derived) return false;
-            return current == derived->current;
-        }
-
-        bool operator!=(const typename fwd_container<T>::const_iterator_base& other) const override {
-            return !(*this == other);
-        }
-
-    protected:
-        typename fwd_container<T>::const_iterator_base* clone() const override {
-            return new queue_const_iterator(*this);
-        }
-    };
+    Node<T>* head_;
+    Node<T>* tail_;
+    size_t size_;
 
 public:
     using iterator = typename fwd_container<T>::iterator;
     using const_iterator = typename fwd_container<T>::const_iterator;
 
-    // Реализация методов fwd_container
-    void push(const T& value) override {
-        data.push_back(value);
-    }
+    Queue();
+    Queue(const Queue& other);
+    Queue(Queue&& other) noexcept;
+    ~Queue();
 
-    void push(T&& value) override {
-        data.push_back(std::move(value));
-    }
+    Queue& operator=(const Queue& other);
+    Queue& operator=(Queue&& other) noexcept;
 
-    T pop() override {
-        if (data.empty()) {
-            throw std::runtime_error("Queue is empty");
-        }
-        T value = std::move(data.front());
-        data.pop_front();
-        return value;
-    }
+    void push(const T& value) override;
+    void push(T&& value) override;
+    void pop() override;
+    T& get_front() override;
+    const T& get_front() const override;
+    bool is_empty() const override;
+    size_t size() const override;
 
-    T& get_front() override {
-        if (data.empty()) {
-            throw std::runtime_error("Queue is empty");
-        }
-        return data.front();
-    }
+    iterator begin() override;
+    iterator end() override;
+    const_iterator cbegin() const override;
+    const_iterator cend() const override;
 
-    const T& get_front() const override {
-        if (data.empty()) {
-            throw std::runtime_error("Queue is empty");
-        }
-        return data.front();
-    }
+private:
+    void clear();
+    void copy_from(const Queue& other);
 
-    bool is_empty() const override {
-        return data.empty();
-    }
+    class QueueIterator : public fwd_container<T>::iterator_base {
+    private:
+        Node<T>* current_;
 
-    size_t size() const override {
-        return data.size();
-    }
+    public:
+        explicit QueueIterator(Node<T>* node);
+        void* get_node() override;
+        const void* get_node() const override;
+        T& deref() override;
+        void increment() override;
+        typename fwd_container<T>::iterator_base* clone() const override;
+        bool equals(const typename fwd_container<T>::iterator_base* other) const override;
+    };
 
-    iterator begin() override {
-        return iterator(new queue_iterator(data.begin(), data.end()));
-    }
+    class ConstQueueIterator : public fwd_container<T>::const_iterator_base {
+    private:
+        const Node<T>* current_;
 
-    iterator end() override {
-        return iterator(new queue_iterator(data.end(), data.end()));
-    }
-
-    const_iterator begin() const override {
-        return const_iterator(new queue_const_iterator(data.begin(), data.end()));
-    }
-
-    const_iterator end() const override {
-        return const_iterator(new queue_const_iterator(data.end(), data.end()));
-    }
-
-    const_iterator cbegin() const override {
-        return const_iterator(new queue_const_iterator(data.begin(), data.end()));
-    }
-
-    const_iterator cend() const override {
-        return const_iterator(new queue_const_iterator(data.end(), data.end()));
-    }
+    public:
+        explicit ConstQueueIterator(const Node<T>* node);
+        const void* get_node() const override;
+        const T& deref() const override;
+        void increment() override;
+        typename fwd_container<T>::const_iterator_base* clone() const override;
+        bool equals(const typename fwd_container<T>::const_iterator_base* other) const override;
+    };
 };
 
-#endif // QUEUE_H_INCLUDED
+#include "Queue.hpp"
+#endif
