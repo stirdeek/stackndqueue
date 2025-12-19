@@ -1,22 +1,24 @@
-#ifndef NODE_H_INCLUDED
-#define NODE_H_INCLUDED
+#ifndef NODE_H
+#define NODE_H
 
 #include <utility>
 
 template<typename T>
-class Node {
-public:
+struct Node {
     T data;
     Node* next;
 
-    explicit Node(const T& value);
-    explicit Node(T&& value);
+    explicit Node(const T& value) noexcept : data(value), next(nullptr) {}
+    explicit Node(T&& value) noexcept : data(std::move(value)), next(nullptr) {}
+    
+    template<typename... Args>
+    explicit Node(Args&&... args) noexcept 
+        : data(std::forward<Args>(args)...), next(nullptr) {}
+
     Node(const Node&) = delete;
     Node& operator=(const Node&) = delete;
-    ~Node() = default;
     Node(Node&&) = delete;
     Node& operator=(Node&&) = delete;
 };
 
-#include "node.hpp"
-#endif // NODE_H_INCLUDED
+#endif // NODE_H
